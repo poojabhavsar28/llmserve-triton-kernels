@@ -5,8 +5,9 @@ A from-scratch LLM inference engine in PyTorch with **KV-cache**, **paged attent
 and a **Triton INT4 kernel**, each benchmarked against a deliberately naive baseline that runs the
 *same model code*, and each tested for correctness against Hugging Face `transformers`.
 
-> The Results tables below are intentionally empty until you run the benchmarks on your own hardware
-> (`python scripts/verify.py`, then the commands in [Benchmarks](#benchmarks)). Never publish numbers you did not measure.
+> The Results section contains measurements from an NVIDIA GeForce RTX 3050 Laptop GPU. Results
+> depend on hardware, power limits, software versions, and workload; benchmark your own setup before
+> comparing performance.
 
 ## Contents
 - [Check that everything works](#check-that-everything-works)
@@ -108,31 +109,43 @@ Close other GPU apps; on a laptop, plug in and use the performance profile to av
 
 ## Results
 
-Paste your measured tables here, with the hardware row filled in.
+Measurements below were collected on an **NVIDIA GeForce RTX 3050 Laptop GPU** using
+**TinyLlama/TinyLlama-1.1B-Chat-v1.0**. Treat them as a report of this specific laptop run, not as
+general performance claims. Perplexity was not measured because the optional `datasets` dependency
+was not installed.
 
 **Phase 1: naive vs KV-cache** (`results/latest.md`)
 
 | engine | prompt | new tok | TTFT (ms) | tok/s | ITL p99 (ms) | peak MiB | speedup |
 |---|---|---|---|---|---|---|---|
-| _run `benchmarks/run_benchmark.py`_ | | | | | | | |
+| Not measured yet | | | | | | | |
 
 **Phase 2: capacity at a fixed KV budget** (`memory_capacity.py`)
 
 | cache | concurrent sequences | vs contiguous | fragmentation |
 |---|---|---|---|
-| _run `benchmarks/memory_capacity.py`_ | | | |
+| Not measured yet | | | |
 
 **Phase 3/5: load test** (`results/load_latest.md`): sequential vs static vs continuous
 
-| policy | rate (req/s) | tok/s | TTFT p99 (ms) | ITL p99 (ms) | e2e p99 (s) |
-|---|---|---|---|---|---|
-| _run `benchmarks/load_test.py`_ | | | | | |
+| policy | rate (req/s) | requests | tok/s | TTFT p50 (ms) | TTFT p95 (ms) | TTFT p99 (ms) | ITL p50 (ms) | ITL p95 (ms) | ITL p99 (ms) | e2e p50 (s) | e2e p99 (s) | errors |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| HTTP server (INT4) | 2.0 | 40 | 17.2 | 15909.5 | 31866.6 | 56652.4 | 148.7 | 1205.9 | 3012.6 | 26.15 | 97.72 | 0 |
+| HTTP server (INT4) | 4.0 | 40 | 13.9 | 100887.1 | 128412.8 | 130468.9 | 166.0 | 1816.1 | 4165.4 | 113.94 | 145.4 | 0 |
+
+These load-test runs completed without request errors, but the high TTFT and end-to-end latency show
+that these offered request rates overload this laptop setup.
 
 **Phase 4: quantization** (`results/quant_latest.md`)
 
-| scheme | weights MiB | decode tok/s | perplexity | ppl delta |
-|---|---|---|---|---|
-| _run `benchmarks/run_quant_benchmark.py`_ | | | | |
+| scheme | weights MiB | decode tok/s | peak memory MiB | memory vs FP16 | speed vs FP16 | perplexity |
+|---|---:|---:|---:|---:|---:|---|
+| FP16 | 2098.2 | 17.1 | 2120.0 | 1.00x | 1.00x | n/a |
+| INT8 | 1174.9 | 12.0 | 1245.0 | 0.56x | 0.70x | n/a |
+| INT4 | 733.8 | 15.6 | 913.0 | 0.35x | 0.91x | n/a |
+
+The CLI generation smoke test with the same model reported **20.7 tok/s decode speed**, **1,222.9 ms
+TTFT**, and **2,114 MiB peak memory**. This is a separate run from the quantization benchmark above.
 
 **Phase 6: kernel + profiling:** see [docs/PROFILING.md](docs/PROFILING.md).
 
