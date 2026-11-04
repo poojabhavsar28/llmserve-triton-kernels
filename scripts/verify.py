@@ -13,6 +13,7 @@ non-zero if anything failed. Tests that need a GPU or Triton are reported as SKI
 from __future__ import annotations
 
 import argparse
+import os
 import socket
 import subprocess
 import sys
@@ -25,10 +26,12 @@ PY = sys.executable
 LOG = ROOT / "results" / "verify.log"
 
 
-def run(cmd, log, timeout=1800):
+def run(cmd, log, timeout=1800, env=None):
     log.write(f"\n$ {' '.join(map(str, cmd))}\n")
     log.flush()
-    p = subprocess.run([str(c) for c in cmd], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+    p = subprocess.run(
+        [str(c) for c in cmd], cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env
+    )
     log.write(p.stdout + p.stderr)
     log.flush()
     return p.returncode == 0, (p.stdout + p.stderr)
@@ -70,10 +73,40 @@ def main():
             return ok, ""
 
         def tests():
-            ok, out = run([PY, "-m", "pytest", "-q", "-p", "no:cacheprovider"], log)
-            tail = [ln for ln in out.strip().splitlines() if ln.strip()][-1]
-            print("      " + tail)
-            return ok, tail
+            cpu_env = os.environ.copy()
+            cpu_env["TRITON_INTERPRET"] = "1"
+            cpu_ok, cpu_out = run(
+                [PY, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                 "-k", "not test_kernel_matches_reference_on_gpu"],
+                log, env=cpu_env,
+            )
+            cpu_summary = [line for line in cpu_out.splitlines() if " passed" in line or " failed" in line]
+            cpu_note = cpu_summary[-1] if cpu_summary else cpu_out.strip().splitlines()[-1]
+
+            gpu_env = os.environ.copy()
+            gpu_env.pop("TRITON_INTERPRET", None)
+            available, capability = run(
+                [PY, "-c",
+                 "import importlib.util, torch; "
+                 "print(torch.cuda.is_available() and importlib.util.find_spec('triton') is not None)"],
+                log,
+            )
+            if not available:
+                return False, f"{cpu_note}; could not check GPU Triton availability"
+            if capability.strip().splitlines()[-1] == "True":
+                gpu_ok, gpu_out = run(
+                    [PY, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+                     "tests/test_triton_int4.py", "-k", "gpu"],
+                    log, env=gpu_env,
+                )
+                gpu_summary = [line for line in gpu_out.splitlines() if " passed" in line or " failed" in line]
+                gpu_note = gpu_summary[-1] if gpu_summary else gpu_out.strip().splitlines()[-1]
+            else:
+                gpu_ok, gpu_note = True, "GPU Triton tests skipped (CUDA GPU or Triton unavailable)"
+
+            note = f"{cpu_note}; {gpu_note}"
+            print("      " + note)
+            return cpu_ok and gpu_ok, note
 
         m = args.model
         step("environment", env)

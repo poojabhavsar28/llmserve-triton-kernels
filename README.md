@@ -118,13 +118,18 @@ was not installed.
 
 | engine | prompt | new tok | TTFT (ms) | tok/s | ITL p99 (ms) | peak MiB | speedup |
 |---|---|---|---|---|---|---|---|
-| Not measured yet | | | | | | | |
+| naive | 128 | 64 | 46.5 | 20.2 | 71.55 | 2118.0 | 1.00x |
+| KV-cache | 128 | 64 | 31.8 | 32.9 | 39.91 | 2120.0 | 1.63x |
 
 **Phase 2: capacity at a fixed KV budget** (`memory_capacity.py`)
 
-| cache | concurrent sequences | vs contiguous | fragmentation |
-|---|---|---|---|
-| Not measured yet | | | |
+At a **1,024 MiB KV-cache budget**, a 2,048-token reservation, 300-token mean sequence length,
+and 16-token blocks:
+
+| cache | concurrent sequences | vs contiguous | internal fragmentation |
+|---|---:|---:|---:|
+| contiguous | 23 | 1.00x | n/a (reserves max sequence length) |
+| paged | 154.6 | 6.72x | 3.0% |
 
 **Phase 3/5: load test** (`results/load_latest.md`): sequential vs static vs continuous
 
