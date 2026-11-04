@@ -152,7 +152,23 @@ that these offered request rates overload this laptop setup.
 The CLI generation smoke test with the same model reported **20.7 tok/s decode speed**, **1,222.9 ms
 TTFT**, and **2,114 MiB peak memory**. This is a separate run from the quantization benchmark above.
 
-**Phase 6: kernel + profiling:** see [docs/PROFILING.md](docs/PROFILING.md).
+**Phase 6: Triton INT4 kernel microbenchmark**
+
+Measured on the RTX 3050 Laptop GPU with decode rows `M=1` and quantization group size `128`.
+These are kernel microbenchmark timings, not end-to-end model throughput:
+
+| output x input | FP16 (us) | PyTorch INT4 (us) | Triton INT4 (us) | Triton vs PyTorch INT4 | Triton vs FP16 | max abs error |
+|---|---:|---:|---:|---:|---:|---:|
+| 2048 x 2048 | 52.7 | 911.0 | 165.6 | 5.50x faster | 0.32x | 0.0625 |
+| 5632 x 2048 | 133.1 | 2390.9 | 481.3 | 4.97x faster | 0.28x | 0.0625 |
+| 2048 x 5632 | 132.4 | 2390.0 | 455.9 | 5.24x faster | 0.29x | 0.0625 |
+| 4096 x 4096 | 191.9 | 3464.9 | 649.5 | 5.34x faster | 0.30x | 0.0625 |
+
+Triton INT4 was faster than the PyTorch INT4 dequantization path for these cases, but slower than
+FP16. A separate five-step decode profile on the offline tiny random model recorded 119.2 ms total
+CUDA time (23.8 ms/step under the profiler). Its [Chrome trace](results/trace-fp16.json) is a
+profiler artifact, not a TinyLlama performance result. See [docs/PROFILING.md](docs/PROFILING.md)
+for profiling methodology and instructions.
 
 ## Architecture
 
