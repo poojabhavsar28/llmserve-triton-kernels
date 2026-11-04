@@ -68,8 +68,8 @@ pip install -e ".[dev]"
 # optional: WikiText-2 perplexity (Phase 4)
 pip install -e ".[eval]"
 
-# optional: Triton INT4 kernel (Phase 6).  Linux:  pip install triton
-#                                          Windows: pip install triton-windows
+# optional: Triton INT4 kernel (Phase 6; selects the platform-specific package)
+pip install -e ".[kernels]"
 ```
 
 If Triton is not installed everything still works; INT4 simply uses the PyTorch dequantise path.

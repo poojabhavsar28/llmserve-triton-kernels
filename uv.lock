@@ -960,8 +960,6 @@ dependencies = [
     { name = "safetensors" },
     { name = "transformers", version = "5.20.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "transformers", version = "5.22.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "triton-windows", version = "3.8.0.post29", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "triton-windows", version = "3.9.0.post30", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -976,8 +974,10 @@ eval = [
     { name = "datasets" },
 ]
 kernels = [
-    { name = "triton", version = "3.8.0", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "python_full_version < '3.11'" },
-    { name = "triton", version = "3.9.0", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "python_full_version >= '3.11'" },
+    { name = "triton", version = "3.8.0", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "python_full_version < '3.11' and sys_platform == 'linux'" },
+    { name = "triton", version = "3.9.0", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "python_full_version >= '3.11' and sys_platform == 'linux'" },
+    { name = "triton-windows", version = "3.8.0.post29", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' and sys_platform == 'win32'" },
+    { name = "triton-windows", version = "3.9.0.post30", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11' and sys_platform == 'win32'" },
 ]
 
 [package.metadata]
@@ -994,8 +994,8 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "safetensors" },
     { name = "transformers" },
-    { name = "triton", marker = "extra == 'kernels'" },
-    { name = "triton-windows", specifier = ">=3.8.0.post29" },
+    { name = "triton", marker = "sys_platform == 'linux' and extra == 'kernels'" },
+    { name = "triton-windows", marker = "sys_platform == 'win32' and extra == 'kernels'", specifier = ">=3.8.0.post29" },
     { name = "uvicorn", extras = ["standard"] },
 ]
 provides-extras = ["dev", "eval", "kernels"]
@@ -2851,14 +2851,8 @@ name = "triton"
 version = "3.9.0"
 source = { registry = "https://download.pytorch.org/whl/cu128" }
 resolution-markers = [
-    "python_full_version >= '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 wheels = [
@@ -2897,14 +2891,8 @@ version = "3.9.0.post30"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version == '3.11.*' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/14/3c/a557263d6e008b54e7093d35c3e01af6ff2b1ec8d42f3247338177807795/triton_windows-3.9.0.post30-cp311-cp311-win_amd64.whl", hash = "sha256:1306dc6e289388453951311977a81469f24bff3b1c61c439bef5ea13027a3ca9", size = 73157570, upload-time = "2026-10-28T02:38:30.797Z" },

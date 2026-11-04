@@ -18,14 +18,16 @@ dependencies = [
     "uvicorn[standard]",
     "httpx",
     "pytest>=9.2.0",
-    "triton-windows>=3.8.0.post29",
     "hypothesis>=6.168.5",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "hypothesis"]
 eval = ["datasets"]  # WikiText-2 perplexity
-kernels = ["triton"]  # Linux; on Windows use: pip install triton-windows
+kernels = [
+    "triton; sys_platform == 'linux'",
+    "triton-windows>=3.8.0.post29; sys_platform == 'win32'",
+]
 
 [[tool.uv.index]]
 url = "https://download.pytorch.org/whl/cu128"

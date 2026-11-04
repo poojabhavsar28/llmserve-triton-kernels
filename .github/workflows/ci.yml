@@ -9,8 +9,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install triton   # lets the Triton kernel tests run in CPU-interpreter mode
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,kernels]"
       - run: ruff check .
-      - run: pytest -q
+      - run: TRITON_INTERPRET=1 pytest -q -k "not test_kernel_matches_reference_on_gpu"
       - run: python scripts/verify.py --skip-server
