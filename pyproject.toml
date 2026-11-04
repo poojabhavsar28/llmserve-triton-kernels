@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llmserve"
+version = "0.1.0"
+description = "From-scratch LLM inference engine: KV-cache, continuous batching, INT8/INT4 quantization, benchmarked against a naive baseline."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy",
+    "safetensors",
+    "huggingface_hub",
+    "transformers",   # tokenizer + HF parity tests
+    "fastapi",
+    "uvicorn[standard]",
+    "httpx",
+    "pytest>=9.2.0",
+    "triton-windows>=3.8.0.post29",
+    "hypothesis>=6.168.5",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "hypothesis"]
+eval = ["datasets"]  # WikiText-2 perplexity
+kernels = ["triton"]  # Linux; on Windows use: pip install triton-windows
+
+[[tool.uv.index]]
+url = "https://download.pytorch.org/whl/cu128"
+
+[project.scripts]
+llmserve-gen = "llmserve.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 110
+src = ["src", "tests", "benchmarks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+"benchmarks/*" = ["E501", "B023"]  # B023: timing lambdas run within their own loop iteration
+"scripts/*" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

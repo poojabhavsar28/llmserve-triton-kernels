@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+results/*.json
+.DS_Store
+.hypothesis/
+results/*.md
+!results/.gitkeep
+.env
+.env.*
+!.env.example
+results/*.log
