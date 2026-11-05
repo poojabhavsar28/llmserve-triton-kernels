@@ -31,7 +31,9 @@ DTYPES = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch
 def build(args, dtype, scheme):
     model = (random_model(device=args.device, dtype=dtype) if args.model == "tiny"
              else load_model(args.model, device=args.device, dtype=dtype))
-    if scheme == "int8":
+    if scheme == "fp16-triton":
+        quantize_model(model, "fp16-triton")
+    elif scheme == "int8":
         quantize_model(model, "int8")
     elif scheme in ("int4", "int4-nokernel"):
         quantize_model(model, "int4", group_size=args.group_size, use_kernel=(scheme == "int4"))
@@ -62,7 +64,7 @@ def main():
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--dtype", choices=list(DTYPES), default=None)
     ap.add_argument("--schemes", nargs="+", default=["fp16", "int8", "int4"],
-                    choices=["fp16", "int8", "int4", "int4-nokernel"])
+                    choices=["fp16", "fp16-triton", "int8", "int4", "int4-nokernel"])
     ap.add_argument("--group-size", type=int, default=128)
     ap.add_argument("--prompt-len", type=int, default=128)
     ap.add_argument("--new-tokens", type=int, default=128)

@@ -86,7 +86,7 @@ Models that work: Llama-family without RoPE scaling (**TinyLlama-1.1B**) and **Q
 | 3 | Continuous batching, preemption, static-batching baseline | `scheduler/engine.py` | `python benchmarks/load_test.py --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 --rates 2 4 8` |
 | 4 | INT8 per-channel and INT4 group-wise quantization + perplexity | `quant/`, `eval/` | `python benchmarks/run_quant_benchmark.py --model TinyLlama/TinyLlama-1.1B-Chat-v1.0` |
 | 5 | OpenAI-compatible server, SSE streaming, backpressure, cancellation | `server/` | see below |
-| 6 | Triton fused INT4 dequant-matmul, profiling | `quant/triton_int4.py`, `benchmarks/profile_decode.py` | `python benchmarks/bench_int4_kernel.py` · `python benchmarks/profile_decode.py --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 --quant int4` |
+| 6 | Triton fused INT4 dequant-matmul, FP16 decode control kernel, profiling | `quant/triton_int4.py`, `kernels/fp16_linear.py`, `benchmarks/profile_decode.py` | `python benchmarks/bench_int4_kernel.py` · `python benchmarks/bench_decode_matmul.py --tune` · `python benchmarks/profile_decode.py --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 --quant int4` |
 
 ### Phase 5: run the server
 ```bash
@@ -170,6 +170,12 @@ CUDA time (23.8 ms/step under the profiler). Its [Chrome trace](results/trace-fp
 profiler artifact, not a TinyLlama performance result. See [docs/PROFILING.md](docs/PROFILING.md)
 for profiling methodology and instructions.
 
+The optional Triton FP16 linear kernel is a control experiment for the INT4 kernel, not a replacement
+for cuBLAS. Compare cuBLAS FP16, Triton FP16, and Triton INT4 on your GPU with
+`python benchmarks/bench_decode_matmul.py --tune`; it reports per-kernel timings and achieved bandwidth.
+For end-to-end runs, `python benchmarks/run_quant_benchmark.py --schemes fp16 fp16-triton int4 --no-ppl`
+includes the `fp16-triton` scheme. The server and load/profile scripts also accept `--quant fp16-triton`.
+
 ## Architecture
 
 ```
@@ -177,7 +183,7 @@ HTTP (FastAPI, SSE) ──► AsyncEngine (thread-safe bridge, backpressure, can
                               │
                      ContinuousBatchingEngine  ── admit / prefill / decode / preempt each iteration
                               │
-              LlamaForCausalLM (+ QuantLinear8/4 layers) ──► sampler
+              LlamaForCausalLM (+ QuantLinear8/4 or TritonLinear16 layers) ──► sampler
                               │
                     PagedKVCache  (block pool + per-sequence block tables + allocator)
 ```
@@ -190,9 +196,10 @@ src/llmserve/
   baseline/    naive no-cache generation, the reference for every speedup
   scheduler/   continuous batching engine (Phase 3)
   quant/       int8.py · int4.py · triton_int4.py (Phases 4 and 6)
+  kernels/     fp16_linear.py (Phase 6 FP16 decode control kernel)
   eval/        perplexity
   server/      async_engine.py · app.py · __main__.py (Phase 5)
-benchmarks/    run_benchmark · memory_capacity · load_test · run_quant_benchmark · profile_decode · bench_int4_kernel
+benchmarks/    run_benchmark · memory_capacity · load_test · run_quant_benchmark · profile_decode · bench_int4_kernel · bench_decode_matmul
 scripts/       verify.py (one-command check of everything)
 tests/         correctness suite
 docs/          DESIGN.md · BENCHMARKS.md · PROFILING.md
@@ -209,7 +216,7 @@ Speed numbers only mean something if outputs are right. The suite checks that:
 - continuous and static batching give token-identical greedy output to independent generation, including under
   forced **preemption + recompute**, EOS, mid-flight arrivals and aborts; blocks are never leaked
 - INT8/INT4 error is bounded by the quantization step; packing round-trips exactly
-- the Triton kernel equals the dequantise-then-matmul reference (CPU interpreter; GPU variants when CUDA is present)
+- Triton INT4 equals the dequantise-then-matmul reference, and Triton FP16 matches `F.linear` (CPU interpreter and GPU variants when CUDA is present)
 - the server returns reference-identical tokens for blocking and streaming requests under concurrency, rejects bad
   input (400/422), applies backpressure (429) and frees resources on cancellation
 

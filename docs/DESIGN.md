@@ -68,6 +68,11 @@
 - Used only for few-row inputs (`rows <= 16`, the decode regime); prefill dequantises and uses cuBLAS.
 - Validated against the PyTorch reference in Triton's CPU interpreter and (when available) on GPU.
 - Each packed byte is loaded twice (once per nibble); a production kernel would unpack both nibbles from one load.
+- **Triton FP16 (`kernels/fp16_linear.py`) is a control experiment, not a cuBLAS replacement.** It uses matching
+  output/K tiling, fp32 accumulation, and fused bias to compare kernel structure against the INT4 path. It is
+  dispatched only for up to 16 rows; prefill and larger batches use `F.linear`. The realistic target is cuBLAS
+  parity, since cuBLAS is already close to memory bandwidth for decode. `LLMSERVE_TUNE=1` benchmarks candidate
+  tile configurations once per `(N, K, dtype, device)`; `benchmarks/bench_decode_matmul.py --tune` enables it.
 
 ## Known limitations / future work
 - Gathering blocks for attention copies memory; a fused paged-attention kernel is the natural next step.

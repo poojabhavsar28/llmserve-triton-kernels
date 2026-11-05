@@ -138,7 +138,7 @@ def main():
     ap.add_argument("--model", default="tiny")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--dtype", choices=list(DTYPES), default=None)
-    ap.add_argument("--quant", choices=["fp16", "int8", "int4"], default="fp16")
+    ap.add_argument("--quant", choices=["fp16", "fp16-triton", "int8", "int4"], default="fp16")
     ap.add_argument("--url", default=None, help="benchmark a running server instead of in-process")
     ap.add_argument("--vocab", type=int, default=256, help="vocab size for random prompts (HTTP mode)")
     ap.add_argument("--policies", nargs="+", default=["sequential", "static", "continuous"],

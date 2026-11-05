@@ -25,8 +25,11 @@ Report the assumptions (reservation length, mean length) next to the result; the
 Weight memory, decode tok/s (KV-cache engine), peak memory, and WikiText-2 perplexity per scheme. Use `int4-nokernel`
 to separate the PyTorch dequantise path from the Triton kernel on the same weights.
 
-## Kernel (Phase 6): `benchmarks/bench_int4_kernel.py`, `benchmarks/profile_decode.py`
-CUDA-event timing of fp16 vs torch-int4 vs Triton-int4 for decode-shaped matmuls, and profiler traces. See PROFILING.md.
+## Kernel (Phase 6): `benchmarks/bench_int4_kernel.py`, `benchmarks/bench_decode_matmul.py`, `benchmarks/profile_decode.py`
+CUDA-event timing compares cuBLAS FP16, Triton FP16, PyTorch INT4, and Triton INT4 for decode-shaped matmuls.
+`bench_decode_matmul.py` rotates weights across at least 128 MiB of copies to reduce L2-cache effects and reports
+achieved bandwidth; pass `--peak-gbs` to show the fraction of peak memory bandwidth. Use `--tune` to select Triton
+FP16 tile configurations per shape. Profiler trace instructions are in PROFILING.md.
 
 ## Hygiene
 - Record GPU, driver/CUDA, torch version, dtype, model (JSON output includes them where applicable).

@@ -21,7 +21,7 @@ def main() -> None:
     ap.add_argument("--model", default="tiny", help="'tiny' (random weights), HF repo id, or path")
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--dtype", choices=list(DTYPES), default=None)
-    ap.add_argument("--quant", choices=["fp16", "int8", "int4"], default="fp16")
+    ap.add_argument("--quant", choices=["fp16", "fp16-triton", "int8", "int4"], default="fp16")
     ap.add_argument("--group-size", type=int, default=128)
     ap.add_argument("--block-size", type=int, default=16)
     ap.add_argument("--num-blocks", type=int, default=512)
