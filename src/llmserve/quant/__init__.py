@@ -26,8 +26,12 @@ def quantize_model(model, scheme: str, group_size: int = 128, use_kernel: bool =
     the original dtype (standard practice: they are a small share of bytes and sensitive)."""
     if scheme == "fp16" or scheme == "none":
         return model
+    if scheme == "fp16-triton":  # not quantization: same fp16 weights, Triton decode kernel
+        from llmserve.kernels import use_triton_linear
+
+        return use_triton_linear(model)
     if scheme not in ("int8", "int4"):
-        raise ValueError(f"unknown scheme {scheme!r}; use fp16 | int8 | int4")
+        raise ValueError(f"unknown scheme {scheme!r}; use fp16 | fp16-triton | int8 | int4")
     for layer in model.model.layers:
         for parent in (layer.self_attn, layer.mlp):
             for name in _LAYER_NAMES:
